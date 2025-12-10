@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Scene - Table with MILo Tin, Milk Tin and Cups</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        header {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+        
+        .deadline {
+            background: rgba(255, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: bold;
+        }
+        
+        .scene-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        #sceneCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .requirements {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: left;
+            max-width: 800px;
+        }
+        
+        .requirements h2 {
+            margin-bottom: 15px;
+            text-align: center;
+            color: #ffcc00;
+        }
+        
+        .requirements ul {
+            list-style-type: none;
+            padding-left: 10px;
+        }
+        
+        .requirements li {
+            padding: 8px 0;
+            font-size: 1.1rem;
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .requirements li:before {
+            content: "✓";
+            color: #4CAF50;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+            font-size: 1.3rem;
+        }
+        
+        .note {
+            background: rgba(255, 193, 7, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 5px solid #ffc107;
+        }
+        
+        footer {
+            margin-top: 30px;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .scene-container {
+                height: 400px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a-scene>
+        <div class="container">
+           
+            
+            <div class="scene-container">
+                <canvas id="sceneCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <button id="rotateView">Rotate View</button>
+                <button id="resetView">Reset View</button>
+                <button id="toggleLight">Toggle Light</button>
+                <button id="toggleWireframe">Toggle Wireframe</button>
+            </div>
+            
+            
+        </div>
+    
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script>
+            // Main Three.js scene setup
+            let scene, camera, renderer;
+            let objects = [];
+            let isRotating = false;
+            let wireframeMode = false;
+            let lightEnabled = true;
+            
+            // Initialize the scene
+            function init() {
+                // Create scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87CEEB); // Sky blue background
+                
+                // Create camera
+                camera = new THREE.PerspectiveCamera(60, window.innerWidth / 600, 0.1, 1000);
+                camera.position.set(8, 6, 8);
+                camera.lookAt(0, 1, 0);
+                
+                // Create renderer
+                const canvas = document.getElementById('sceneCanvas');
+                renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+                renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                // Add lighting
+                addLighting();
+                
+                // Add floor
+                addFloor();
+                
+                // Create the main objects
+                createTable();
+                createChairs();
+                createMiloTin();
+                createMilkTin();
+                createCups();
+                createDecorativeElements();
+                
+                // Handle window resize
+                window.addEventListener('resize', onWindowResize);
+                
+                // Setup controls
+                setupControls();
+                
+                // Start animation loop
+                animate();
+            }
+            
+            function addLighting() {
+                // Ambient light
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+                
+                // Main directional light (sun)
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 5);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                scene.add(directionalLight);
+                
+                // Hemisphere light for natural outdoor feel
+                const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x8B4513, 0.3);
+                scene.add(hemisphereLight);
+                
+                objects.push({light: directionalLight, type: 'light'});
+            }
+            
+            function addFloor() {
+                // Create floor
+                const floorGeometry = new THREE.PlaneGeometry(30, 30);
+                const floorMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x7B9E60,
+                    roughness: 0.8,
+                    metalness: 0.2
+                });
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2;
+                floor.receiveShadow = true;
+                scene.add(floor);
+                
+                // Add floor pattern (grid)
+                const gridHelper = new THREE.GridHelper(30, 30, 0x000000, 0x000000);
+                gridHelper.material.opacity = 0.1;
+                gridHelper.material.transparent = true;
+                scene.add(gridHelper);
+            }
+            
+            function createTable() {
+                const tableGroup = new THREE.Group();
+                
+                // Table top
+                const tableTopGeometry = new THREE.BoxGeometry(4, 0.2, 2.5);
+                const tableTopMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x8B4513,
+                    roughness: 0.7
+                });
+                const tableTop = new THREE.Mesh(tableTopGeometry, tableTopMaterial);
+                tableTop.position.y = 2;
+                tableTop.castShadow = true;
+                tableTop.receiveShadow = true;
+                tableGroup.add(tableTop);
+                
+                // Table legs
+                const legGeometry = new THREE.CylinderGeometry(0.15, 0.15, 2, 8);
+                const legMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x654321,
+                    roughness: 0.8
+                });
+                
+                const legPositions = [
+                    [1.5, 1, 1],
+                    [-1.5, 1, 1],
+                    [1.5, 1, -1],
+                    [-1.5, 1, -1]
+                ];
+                
+                legPositions.forEach(pos => {
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    leg.position.set(pos[0], pos[1], pos[2]);
+                    leg.castShadow = true;
+                    tableGroup.add(leg);
+                });
+                
+                scene.add(tableGroup);
+                objects.push({obj: tableGroup, type: 'table'});
+            }
+            
+            function createChairs() {
+                const chairPositions = [
+                    { x: 0, z: 2.5, rotation: 0 },    // Front chair
+                    { x: 0, z: -2.5, rotation: Math.PI }, // Back chair
+                    { x: 2.5, z: 0, rotation: Math.PI / 2 }, // Right chair
+                    { x: -2.5, z: 0, rotation: -Math.PI / 2 }  // Left chair (extra)
+                ];
+                
+                chairPositions.forEach((pos, index) => {
+                    const chairGroup = new THREE.Group();
+                    
+                    // Chair seat
+                    const seatGeometry = new THREE.BoxGeometry(1.2, 0.15, 1.2);
+                    const seatMaterial = new THREE.MeshStandardMaterial({ 
+                        color: 0x8B4513,
+                        roughness: 0.8
+                    });
+                    const seat = new THREE.Mesh(seatGeometry, seatMaterial);
+                    seat.position.y = 1.2;
+                    seat.castShadow = true;
+                    seat.receiveShadow = true;
+                    chairGroup.add(seat);
+                    
+                    // Chair back
+                    const backGeometry = new THREE.BoxGeometry(1.2, 1.2, 0.1);
+                    const backMaterial = new THREE.MeshStandardMaterial({ 
+                        color: 0xA0522D,
+                        roughness: 0.7
+                    });
+                    const back = new THREE.Mesh(backGeometry, backMaterial);
+                    back.position.set(0, 1.8, 0.55);
+                    back.castShadow = true;
+                    chairGroup.add(back);
+                    
+                    // Chair legs
+                    const legGeometry = new THREE.CylinderGeometry(0.08, 0.08, 1.2, 6);
+                    const legMaterial = new THREE.MeshStandardMaterial({ 
+                        color: 0x654321,
+                        roughness: 0.8
+                    });
+                    
+                    const legPositions = [
+                        [0.45, 0.6, 0.45],
+                        [-0.45, 0.6, 0.45],
+                        [0.45, 0.6, -0.45],
+                        [-0.45, 0.6, -0.45]
+                    ];
+                    
+                    legPositions.forEach(legPos => {
+                        const leg = new THREE.Mesh(legGeometry, legMaterial);
+                        leg.position.set(legPos[0], legPos[1], legPos[2]);
+                        leg.castShadow = true;
+                        chairGroup.add(leg);
+                    });
+                    
+                    // Position and rotate chair
+                    chairGroup.position.set(pos.x, 0, pos.z);
+                    chairGroup.rotation.y = pos.rotation;
+                    
+                    scene.add(chairGroup);
+                    objects.push({obj: chairGroup, type: 'chair', index: index});
+                });
+            }
+            
+            function createMiloTin() {
+                const miloGroup = new THREE.Group();
+                
+                // Tin body (red)
+                const tinGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 16);
+                const tinMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xC41E3A, // Red color for MILO
+                    roughness: 0.3,
+                    metalness: 0.2
+                });
+                const tin = new THREE.Mesh(tinGeometry, tinMaterial);
+                tin.position.y = 2.4;
+                tin.castShadow = true;
+                miloGroup.add(tin);
+                
+                // Tin lid (gold)
+                const lidGeometry = new THREE.CylinderGeometry(0.42, 0.42, 0.05, 16);
+                const lidMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xFFD700, // Gold color
+                    roughness: 0.4,
+                    metalness: 0.8
+                });
+                const lid = new THREE.Mesh(lidGeometry, lidMaterial);
+                lid.position.y = 2.8;
+                lid.castShadow = true;
+                miloGroup.add(lid);
+                
+                // Label text (simulated with colored bands)
+                const labelGeometry = new THREE.CylinderGeometry(0.401, 0.401, 0.3, 16);
+                const labelMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xFFFFFF,
+                    roughness: 0.5
+                });
+                const label = new THREE.Mesh(labelGeometry, labelMaterial);
+                label.position.y = 2.2;
+                miloGroup.add(label);
+                
+                // MILO text (using simple geometry)
+                const textGeometry = new THREE.BoxGeometry(0.5, 0.1, 0.01);
+                const textMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xC41E3A,
+                    roughness: 0.5
+                });
+                const text = new THREE.Mesh(textGeometry, textMaterial);
+                text.position.set(0, 2.2, 0.41);
+                miloGroup.add(text);
+                
+                miloGroup.position.set(-0.8, 0, 0);
+                scene.add(miloGroup);
+                objects.push({obj: miloGroup, type: 'milo'});
+            }
+            
+            function createMilkTin() {
+                const milkGroup = new THREE.Group();
+                
+                // Tin body (blue)
+                const tinGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1, 16);
+                const tinMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x1E90FF, // Blue color for milk
+                    roughness: 0.3,
+                    metalness: 0.2
+                });
+                const tin = new THREE.Mesh(tinGeometry, tinMaterial);
+                tin.position.y = 2.5;
+                tin.castShadow = true;
+                milkGroup.add(tin);
+                
+                // Tin lid (silver)
+                const lidGeometry = new THREE.CylinderGeometry(0.42, 0.42, 0.05, 16);
+                const lidMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xC0C0C0, // Silver color
+                    roughness: 0.3,
+                    metalness: 0.9
+                });
+                const lid = new THREE.Mesh(lidGeometry, lidMaterial);
+                lid.position.y = 3.0;
+                lid.castShadow = true;
+                milkGroup.add(lid);
+                
+                // Label
+                const labelGeometry = new THREE.CylinderGeometry(0.401, 0.401, 0.4, 16);
+                const labelMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xFFFFFF,
+                    roughness: 0.5
+                });
+                const label = new THREE.Mesh(labelGeometry, labelMaterial);
+                label.position.y = 2.3;
+                milkGroup.add(label);
+                
+                // Milk text
+                const textGeometry = new THREE.BoxGeometry(0.5, 0.1, 0.01);
+                const textMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x1E90FF,
+                    roughness: 0.5
+                });
+                const text = new THREE.Mesh(textGeometry, textMaterial);
+                text.position.set(0, 2.3, 0.41);
+                milkGroup.add(text);
+                
+                milkGroup.position.set(0.8, 0, 0);
+                scene.add(milkGroup);
+                objects.push({obj: milkGroup, type: 'milk'});
+            }
+            
+            function createCups() {
+                const cupPositions = [
+                    { x: -0.8, z: 0.8 },
+                    { x: 0.8, z: -0.8 }
+                ];
+                
+                cupPositions.forEach((pos, index) => {
+                    const cupGroup = new THREE.Group();
+                    
+                    // Cup body (hollow cylinder)
+                    const cupOuterGeometry = new THREE.CylinderGeometry(0.3, 0.25, 0.6, 16);
+                    const cupInnerGeometry = new THREE.CylinderGeometry(0.28, 0.23, 0.59, 16);
+                    const cupMaterial = new THREE.MeshStandardMaterial({ 
+                        color: index === 0 ? 0xFFD700 : 0x87CEEB, // Gold and blue cups
+                        roughness: 0.2,
+                        metalness: 0.1
+                    });
+                    
+                    // Create hollow cup using a difference operation (simplified)
+                    const cup = new THREE.Mesh(cupOuterGeometry, cupMaterial);
+                    cup.position.y = 2.3;
+                    cup.castShadow = true;
+                    cupGroup.add(cup);
+                    
+                    // Cup handle
+                    const handleGeometry = new THREE.TorusGeometry(0.15, 0.05, 8, 16, Math.PI);
+                    const handleMaterial = new THREE.MeshStandardMaterial({ 
+                        color: cupMaterial.color,
+                        roughness: 0.3,
+                        metalness: 0.2
+                    });
+                    const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+                    handle.position.set(0.35, 2.3, 0);
+                    handle.rotation.z = Math.PI / 2;
+                    handle.castShadow = true;
+                    cupGroup.add(handle);
+                    
+                    // Coffee/tea inside cup
+                    const liquidGeometry = new THREE.CylinderGeometry(0.28, 0.23, 0.3, 16);
+                    const liquidMaterial = new THREE.MeshStandardMaterial({ 
+                        color: 0x8B4513, // Brown for coffee
+                        roughness: 0.5,
+                        metalness: 0.1
+                    });
+                    const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
+                    liquid.position.y = 2.15;
+                    cupGroup.add(liquid);
+                    
+                    cupGroup.position.set(pos.x, 0, pos.z);
+                    scene.add(cupGroup);
+                    objects.push({obj: cupGroup, type: 'cup', index: index});
+                });
+            }
+            
+            function createDecorativeElements() {
+                // Add a plant on the table
+                const plantGroup = new THREE.Group();
+                
+                // Plant pot
+                const potGeometry = new THREE.CylinderGeometry(0.3, 0.25, 0.4, 8);
+                const potMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xCD7F32, // Bronze color
+                    roughness: 0.7
+                });
+                const pot = new THREE.Mesh(potGeometry, potMaterial);
+                pot.position.y = 2.2;
+                pot.castShadow = true;
+                plantGroup.add(pot);
+                
+                // Plant stem
+                const stemGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 6);
+                const stemMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x228B22, // Green
+                    roughness: 0.9
+                });
+                const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+                stem.position.y = 2.8;
+                plantGroup.add(stem);
+                
+                // Plant leaves
+                const leafGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+                const leafMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x32CD32, // Light green
+                    roughness: 0.9
+                });
+                
+                for (let i = 0; i < 5; i++) {
+                    const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                    leaf.position.set(
+                        (Math.random() - 0.5) * 0.3,
+                        2.8 + Math.random() * 0.5,
+                        (Math.random() - 0.5) * 0.3
+                    );
+                    leaf.scale.set(1, Math.random() + 0.5, 1);
+                    leaf.castShadow = true;
+                    plantGroup.add(leaf);
+                }
+                
+                plantGroup.position.set(0, 0, 0);
+                scene.add(plantGroup);
+                objects.push({obj: plantGroup, type: 'plant'});
+                
+                // Add a window on the wall (background)
+                const windowGroup = new THREE.Group();
+                
+                // Window frame
+                const frameGeometry = new THREE.BoxGeometry(3, 2, 0.1);
+                const frameMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0x8B4513,
+                    roughness: 0.8
+                });
+                const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                frame.position.set(0, 5, -10);
+                windowGroup.add(frame);
+                
+                // Window glass
+                const glassGeometry = new THREE.BoxGeometry(2.8, 1.8, 0.05);
+                const glassMaterial = new THREE.MeshStandardMaterial({ 
+                    color: 0xADD8E6,
+                    transparent: true,
+                    opacity: 0.3,
+                    roughness: 0.1,
+                    metalness: 0.5
+                });
+                const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+                glass.position.set(0, 5, -9.95);
+                windowGroup.add(glass);
+                
+                scene.add(windowGroup);
+                
+                // Add some floating particles (dust/motes) for atmosphere
+                const particleCount = 100;
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particlesMaterial = new THREE.PointsMaterial({
+                    color: 0xFFFFFF,
+                    size: 0.05,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                
+                const positions = new Float32Array(particleCount * 3);
+                
+                for (let i = 0; i < particleCount * 3; i += 3) {
+                    positions[i] = (Math.random() - 0.5) * 20;
+                    positions[i + 1] = Math.random() * 10;
+                    positions[i + 2] = (Math.random() - 0.5) * 20;
+                }
+                
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+                scene.add(particles);
+                objects.push({obj: particles, type: 'particles'});
+            }
+            
+            function setupControls() {
+                document.getElementById('rotateView').addEventListener('click', function() {
+                    isRotating = !isRotating;
+                    this.textContent = isRotating ? 'Stop Rotation' : 'Rotate View';
+                });
+                
+                document.getElementById('resetView').addEventListener('click', function() {
+                    camera.position.set(8, 6, 8);
+                    camera.lookAt(0, 1, 0);
+                });
+                
+                document.getElementById('toggleLight').addEventListener('click', function() {
+                    lightEnabled = !lightEnabled;
+                    scene.traverse(function(child) {
+                        if (child.isLight && child.type !== 'AmbientLight') {
+                            child.visible = lightEnabled;
+                        }
+                    });
+                    this.textContent = lightEnabled ? 'Toggle Light' : 'Light On';
+                });
+                
+                document.getElementById('toggleWireframe').addEventListener('click', function() {
+                    wireframeMode = !wireframeMode;
+                    scene.traverse(function(child) {
+                        if (child.isMesh) {
+                            if (wireframeMode) {
+                                child.material.wireframe = true;
+                            } else {
+                                child.material.wireframe = false;
+                            }
+                        }
+                    });
+                    this.textContent = wireframeMode ? 'Solid View' : 'Wireframe View';
+                });
+                
+                // Add mouse controls for manual rotation
+                let isMouseDown = false;
+                let previousMousePosition = { x: 0, y: 0 };
+                
+                const canvas = document.getElementById('sceneCanvas');
+                
+                canvas.addEventListener('mousedown', function(e) {
+                    isMouseDown = true;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                });
+                
+                canvas.addEventListener('mouseup', function() {
+                    isMouseDown = false;
+                });
+                
+                canvas.addEventListener('mousemove', function(e) {
+                    if (!isMouseDown) return;
+                    
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    camera.position.x -= deltaX * 0.01;
+                    camera.position.y += deltaY * 0.01;
+                    
+                    camera.lookAt(0, 1, 0);
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                });
+                
+                // Add zoom with mouse wheel
+                canvas.addEventListener('wheel', function(e) {
+                    camera.position.z += e.deltaY * 0.01;
+                    camera.lookAt(0, 1, 0);
+                });
+            }
+            
+            function onWindowResize() {
+                const canvas = document.getElementById('sceneCanvas');
+                camera.aspect = canvas.parentElement.clientWidth / canvas.parentElement.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+            }
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // Rotate view if enabled
+                if (isRotating) {
+                    const time = Date.now() * 0.001;
+                    camera.position.x = 8 * Math.cos(time * 0.2);
+                    camera.position.z = 8 * Math.sin(time * 0.2);
+                    camera.lookAt(0, 1, 0);
+                }
+                
+                // Animate particles
+                scene.traverse(function(child) {
+                    if (child.type === 'Points') {
+                        const positions = child.geometry.attributes.position.array;
+                        for (let i = 0; i < positions.length; i += 3) {
+                            positions[i + 1] += 0.005; // Move particles up
+                            if (positions[i + 1] > 10) {
+                                positions[i + 1] = 0;
+                            }
+                        }
+                        child.geometry.attributes.position.needsUpdate = true;
+                    }
+                });
+                
+                renderer.render(scene, camera);
+            }
+            
+            // Initialize when page loads
+            window.addEventListener('DOMContentLoaded', init);
+        </script>
+    </a-scene>
+</body>
+</html>
